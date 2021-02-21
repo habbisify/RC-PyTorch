@@ -95,6 +95,8 @@ class ClassifierNetwork(vis.summarizable_module.SummarizableModule):
                 ChannelAverage(),
         )
 
+        import pdb; pdb.set_trace()
+        # FIXME num_classes = 1
         if config_clf.deep_tail:
             tail = [nn.Linear(final_Cf, 2*final_Cf), nn.LeakyReLU(inplace=True),
                     nn.Linear(final_Cf, num_classes)]
@@ -106,12 +108,14 @@ class ClassifierNetwork(vis.summarizable_module.SummarizableModule):
 
     def get_q(self, x):
         assert len(x.shape) == 4 and x.shape[0] == 1, x.shape
+        import pdb; pdb.set_trace()
         with torch.no_grad():
             q_logits = self.forward(x).q_logits
             _, predicted = torch.max(q_logits, 1)
             return predicted.item() + self.config_clf.first_class
 
     def forward(self, x):
+        import pdb; pdb.set_trace()
         self.summarizer.register_images('train', {'input': x}, normalize=True, only_once=True)
         x = self.head(x)
         self.summarizer.register_images('auto', {'after_head': x[0, :3, ...]}, normalize=True, only_once=True)
@@ -162,6 +166,8 @@ class ClassifierBlueprint(vis.summarizable_module.SummarizableModule):
         self.net = ClassifierNetwork(config_clf)
         self.net = self.net.to(pe.DEVICE)
 
+        import pdb; pdb.set_trace()
+        # FIXME self.loss = nn.MSELoss()
         self.loss = nn.CrossEntropyLoss()
         self.config_clf = config_clf
 
@@ -194,6 +200,7 @@ class ClassifierBlueprint(vis.summarizable_module.SummarizableModule):
         :param auto_recurse: int, how many times the last scales should be applied again. Used for RGB Shared.
         :return: layers.multiscale.Out
         """
+        import pdb; pdb.set_trace()
         return self.net(x.get())
 
     @staticmethod
@@ -206,6 +213,7 @@ class ClassifierBlueprint(vis.summarizable_module.SummarizableModule):
     def unpack_batch_pad(self, img_or_imgbatch):
         raw = img_or_imgbatch['raw'].to(pe.DEVICE, non_blocking=True)  # uint8 or int16
         q = img_or_imgbatch['q'].to(pe.DEVICE).view(-1)  # 1d tensor of floats
+        import pdb; pdb.set_trace()
 
         if len(raw.shape) == 3:
             raw.unsqueeze_(0)

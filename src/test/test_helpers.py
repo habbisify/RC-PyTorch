@@ -265,6 +265,7 @@ class LossOutMeta(object):
         """
         :param is_meta: either False or int. If int, represents the first Q to try (?)
         """
+        #import pdb; pdb.set_trace()
         self.is_meta = is_meta
         self.blueprint = blueprint
         self.n_sp_pre_pad = None
@@ -311,23 +312,29 @@ class LossOutMeta(object):
 
         Always yields a set of images, and the q used to optain it.
         """
+        #import pdb; pdb.set_trace()
         if not self.is_meta:
             yield self._unpack(img), None
         else:
             # get a first Q guess
             if self.run_clf:
-                assert self.clf
+                if not self.clf: #FIXME Modified
+                    torch.cuda.empty_cache()
+                    self.clf_q = 14
+                    print("WARNING: Using Q=14, since no clf")
+                #assert self.clf #FIXME Modified
                 # (x_r, _), _, _ = self._unpack(img[next(iter(img))])
 
-                raw, _, _ = self._unpack(img[next(iter(img))])
-                s_r = SymbolTensor(raw.long(), L=256)
-                x_r = s_r.to_norm()
+                else:
+                    raw, _, _ = self._unpack(img[next(iter(img))])
+                    s_r = SymbolTensor(raw.long(), L=256)
+                    x_r = s_r.to_norm()
 
-                torch.cuda.empty_cache()
-                # crop_qs = [self.clf.get_q(x_r_crop) for x_r_crop in auto_crop.iter_crops(x_r.get())]
-                # print('***\n',crop_qs,'\n')
-                self.clf_q = self.clf.get_q(x_r.get())
-                torch.cuda.empty_cache()
+                    torch.cuda.empty_cache()
+                    # crop_qs = [self.clf.get_q(x_r_crop) for x_r_crop in auto_crop.iter_crops(x_r.get())]
+                    # print('***\n',crop_qs,'\n')
+                    self.clf_q = self.clf.get_q(x_r.get())
+                    torch.cuda.empty_cache()
             elif self.qstrategy == QStrategy.FIXED:
                 # note: we use clf_q also for the fixed Q, confusing naming scheme, I know!!!
                 self.clf_q = 14  # optimal on training set

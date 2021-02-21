@@ -225,7 +225,6 @@ def parse_flags(args):
         global_config.add_from_flag(flags.p)
         print('Global config\n', global_config)
 
-
     if flags.clf_p:
         assert os.path.isfile(flags.clf_p), flags.clf_p
 
