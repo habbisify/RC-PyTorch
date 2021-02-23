@@ -46,11 +46,11 @@ class SideInformationNetwork(nn.Module):
 
         self.net = nn.Sequential(
                 nn.Conv2d(3, Ccond, kernel_size=3),
-                nn.ReLU(inplace=True),
+                nn.RReLU(lower=1/10, upper=1/3, inplace=True),
                 nn.Conv2d(Ccond, Ccond, kernel_size=3),
-                nn.ReLU(inplace=True),
+                nn.RReLU(lower=1/10, upper=1/3, inplace=True),
                 nn.Conv2d(Ccond, Ccond, kernel_size=3),
-                nn.ReLU(inplace=True))
+                nn.RReLU(lower=1/10, upper=1/3, inplace=True))
 
     def forward(self, x_residual):
         return self.net(x_residual).mean((2, 3))  # mean over spatial
@@ -74,10 +74,10 @@ class ConditionalConvolution(nn.Module):
         self.conv = pe.default_conv(Cin, Cout, kernel_size, bias=False)
         self.to_scale = nn.Sequential(
                 nn.Linear(Ccond, Cout),
-                nn.ReLU(inplace=True))
+                nn.RReLU(lower=1/10, upper=1/3, inplace=True))
         self.to_bias = nn.Sequential(
                 nn.Linear(Ccond, Cout),
-                nn.ReLU(inplace=True))
+                nn.RReLU(lower=1/10, upper=1/3, inplace=True))
         self.activation = activation
 
     def forward(self, x, cond_in):
@@ -129,7 +129,7 @@ class EnhancementNetwork(vis.summarizable_module.SummarizableModule):
         if global_config.get('unet_skip', None):
             self.unet_skip_conv = nn.Sequential(
                     pe.default_conv(2*Cf, Cf, 3),
-                    nn.ReLU(inplace=True))
+                    nn.RReLU(lower=1/10, upper=1/3, inplace=True))
 
         assert not global_config.get('learned_skip', False)
 
@@ -209,11 +209,11 @@ class EnhancementNetwork(vis.summarizable_module.SummarizableModule):
                     prob_clf.StackedAtrousConvs(
                             atrous_rates_str='1,2,4',
                             Cin=Cf, Cout=prob_clf.ProbClfTail.get_cout(config_en), Catrous=Cf//2,
-                            bias=False, activation=nn.LeakyReLU(inplace=True))]
+                            bias=False, activation=nn.RReLU(lower=1/10, upper=1/3, inplace=True))]
             else:  # default so far
                 return [
                     pe.default_conv(Cf, Cf, fw_),
-                    nn.LeakyReLU(inplace=True),
+                    nn.RReLU(lower=1/10, upper=1/3, inplace=True),
                     pe.default_conv(Cf, prob_clf.ProbClfTail.get_cout(config_en), 1),  # final 1x1
                 ]
 
@@ -241,7 +241,7 @@ class EnhancementNetwork(vis.summarizable_module.SummarizableModule):
             tail_networks['pis'] = lambda: pe.FeatureMapSaverSequential(
                     make_res_block(act_tail, use_norm_for_long),
                     pe.default_conv(Cf, Cf, 3),  # no crazy smoothing
-                    nn.LeakyReLU(inplace=True),  # a non linearity
+                    nn.RReLU(lower=1/10, upper=1/3, inplace=True),  # a non linearity
                     pe.default_conv(Cf, prob_clf.ProbClfTail.get_cout(config_en), 1),  # final 1x1
                     saver=None
             )
@@ -250,7 +250,7 @@ class EnhancementNetwork(vis.summarizable_module.SummarizableModule):
             tail_networks['lambdas'] = lambda: nn.Sequential(
                     make_res_block(act_tail, use_norm_for_long),
                     pe.default_conv(Cf, Cf, 3),  # no crazy smoothing
-                    nn.LeakyReLU(inplace=True),  # a non linearity
+                    nn.RReLU(lower=1/10, upper=1/3, inplace=True),  # CHANGED Tim
                     pe.default_conv(Cf, prob_clf.ProbClfTail.get_cout(config_en), 1),  # final 1x1
             )
             print('Did set tail_networks.lambdas')
@@ -258,7 +258,7 @@ class EnhancementNetwork(vis.summarizable_module.SummarizableModule):
         if global_config.get('longer_lambda', False):
             tail_networks['lambdas'] = lambda: nn.Sequential(
                     pe.default_conv(Cf, Cf, 3),
-                    nn.LeakyReLU(inplace=True),
+                    nn.RReLU(lower=1/10, upper=1/3, inplace=True),  # CHANGED Tim
                     pe.default_conv(Cf, prob_clf.ProbClfTail.get_cout(config_en), 1),  # final 1x1
             )
             print('Did set tail_networks.lambdas')
@@ -270,7 +270,7 @@ class EnhancementNetwork(vis.summarizable_module.SummarizableModule):
             Ccond = global_config['side_information']
             self.side_information_net = SideInformationNetwork(Ccond)
             self.side_information_conv = ConditionalConvolution(Cf, Cf, Ccond, kernel_size,
-                                                                activation=nn.LeakyReLU(inplace=True))
+                                                                activation=nn.RReLU(lower=1/10, upper=1/3, inplace=True))
 
         print('Setting tail_networks[', tail_networks.keys(), ']')
         self.tail = prob_clf.ProbClfTail.from_config(config_en, tail_networks=tail_networks)
