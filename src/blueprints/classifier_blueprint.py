@@ -96,7 +96,8 @@ class ClassifierNetwork(vis.summarizable_module.SummarizableModule):
         )
 
         import pdb; pdb.set_trace()
-        # FIXME num_classes = 1
+        # FIXME
+        num_classes = 1
         if config_clf.deep_tail:
             tail = [nn.Linear(final_Cf, 2*final_Cf), nn.LeakyReLU(inplace=True),
                     nn.Linear(final_Cf, num_classes)]
@@ -108,11 +109,14 @@ class ClassifierNetwork(vis.summarizable_module.SummarizableModule):
 
     def get_q(self, x):
         assert len(x.shape) == 4 and x.shape[0] == 1, x.shape
-        import pdb; pdb.set_trace()
         with torch.no_grad():
-            q_logits = self.forward(x).q_logits
-            _, predicted = torch.max(q_logits, 1)
-            return predicted.item() + self.config_clf.first_class
+            # FIXME
+            import pdb; pdb.set_trace()
+            q_pred = self.forward(x).q_logits
+            import pdb; pdb.set_trace()
+            # _, predicted = torch.max(q_logits, 1)
+            # return predicted.item() + self.config_clf.first_class
+            return q_pred + self.config_clf.first_class
 
     def forward(self, x):
         import pdb; pdb.set_trace()
@@ -167,8 +171,9 @@ class ClassifierBlueprint(vis.summarizable_module.SummarizableModule):
         self.net = self.net.to(pe.DEVICE)
 
         import pdb; pdb.set_trace()
-        # FIXME self.loss = nn.MSELoss()
-        self.loss = nn.CrossEntropyLoss()
+        # FIXME
+        self.loss = nn.MSELoss()
+        # self.loss = nn.CrossEntropyLoss()
         self.config_clf = config_clf
 
         self.padding_fac = self.get_padding_fac()

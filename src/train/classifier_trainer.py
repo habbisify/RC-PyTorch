@@ -68,6 +68,7 @@ class ClassifierTrainer(MultiscaleTrainer):
             with self.summarizer.maybe_enable(prefix='train', flag=log_heavy, global_step=i):
                 loss = self.blueprint.loss(out.q_logits, q)
 
+            import pdb; pdb.set_trace()
             loss.backward()
             self.optim.step()
 
