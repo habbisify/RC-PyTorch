@@ -26,6 +26,7 @@ def make(C, inverse):
     return {
         'relu':     lambda: nn.ReLU(True),
         'lrelu':    lambda: nn.LeakyReLU(inplace=True),
+        'rrelu':    lambda: nn.RReLU(inplace=True),
         'GDN':      lambda: gdn.GDN(C, inverse=inverse)
-    }[global_config.get('act', 'relu')]()
+    }[global_config.get('act', 'rrelu')]()
 
