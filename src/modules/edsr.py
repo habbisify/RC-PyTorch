@@ -62,7 +62,7 @@ class MeanShift(nn.Conv2d):
 
 class ResBlock(nn.Module):
     def __init__(self, conv, n_feats, kernel_size,
-                 bias=True, bn=False, norm_cls=None, act=nn.RReLU(True), res_scale=1):
+                 bias=True, bn=False, norm_cls=None, act=nn.ReLU(True), res_scale=1):
 
         super(ResBlock, self).__init__()
         m = []
@@ -108,8 +108,6 @@ class Upsampler(nn.Sequential):
                     m.append(nn.ReLU(True))
                 elif act == 'prelu':
                     m.append(nn.PReLU(n_feats))
-                elif act == 'rrelu':
-                    m.append(nn.RReLU(True))
 
         elif scale == 3:
             m.append(conv(n_feats, 9 * n_feats, 3, bias))
@@ -120,8 +118,6 @@ class Upsampler(nn.Sequential):
                 m.append(nn.ReLU(True))
             elif act == 'prelu':
                 m.append(nn.PReLU(n_feats))
-            elif act == 'rrelu':
-                    m.append(nn.RReLU(True))
         else:
             raise NotImplementedError
 
