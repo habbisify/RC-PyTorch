@@ -65,10 +65,13 @@ class ClassifierTrainer(MultiscaleTrainer):
             with self.summarizer.maybe_enable(prefix='train', flag=log, global_step=i):
                 out: ClassifierOut = self.blueprint.forward(x_n)
 
-            # FIXME only reason for fail is bad loss for backcward
+            # FIXME this is hotfix; needs cleaner solution
             import pdb; pdb.set_trace()
+            import torch
+            q2 = [[float(x)] for x in q]
+            q2 = torch.tensor(q2, dtype=out.q_logits.dtype, device=q.device)
             with self.summarizer.maybe_enable(prefix='train', flag=log_heavy, global_step=i):
-                loss = self.blueprint.loss(out.q_logits, q)
+                loss = self.blueprint.loss(out.q_logits, q2)
 
             import pdb; pdb.set_trace()
             loss.backward()
