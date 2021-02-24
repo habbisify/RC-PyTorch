@@ -7,7 +7,7 @@ optim = 'Adam'
 lr.initial = 0.0001
 lr.schedule = 'exp_0.25_i50000'
 weight_decay = 1e-4
-num_classes = 7
+num_classes = 1
 first_class = 11
 
 Cf = 128

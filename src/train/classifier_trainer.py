@@ -49,6 +49,12 @@ class ClassifierTrainer(MultiscaleTrainer):
                                  self.config_dl.optimal_qs_csv_val,
                                  to_tensor_transform)
 
+    def _q2regression(self, q, target):
+        import torch
+        q2 = [[float(x)] for x in q]
+        q2 = torch.tensor(q2, dtype=target.dtype, device=q.device)
+        return q2
+
     def train_step(self, i, batch, log, log_heavy, load_time_per_batch=None):
         self.lr_schedule.update(i)
         self.net.zero_grad()
@@ -65,15 +71,10 @@ class ClassifierTrainer(MultiscaleTrainer):
             with self.summarizer.maybe_enable(prefix='train', flag=log, global_step=i):
                 out: ClassifierOut = self.blueprint.forward(x_n)
 
-            # FIXME this is hotfix; needs cleaner solution
-            import pdb; pdb.set_trace()
-            import torch
-            q2 = [[float(x)] for x in q]
-            q2 = torch.tensor(q2, dtype=out.q_logits.dtype, device=q.device)
+            q = self._q2regression(q, out.q_logits)
             with self.summarizer.maybe_enable(prefix='train', flag=log_heavy, global_step=i):
-                loss = self.blueprint.loss(out.q_logits, q2)
+                loss = self.blueprint.loss(out.q_logits, q)
 
-            import pdb; pdb.set_trace()
             loss.backward()
             self.optim.step()
 
@@ -125,6 +126,7 @@ class ClassifierTrainer(MultiscaleTrainer):
                     filename = self.ds_val.get_filename(idx)
                     x_n, q = self.blueprint.unpack_batch_pad(img)
                     out: ClassifierOut = self.blueprint.forward(x_n)
+                    q = self._q2regression(q, out.q_logits)
                     loss = self.blueprint.loss(out.q_logits, q)
                     test_results.set_from_loss(loss, filename)
                     test_results.set(filename, 'acc', self.blueprint.get_accuracy(out.q_logits, q))
