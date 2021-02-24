@@ -13,6 +13,6 @@ imgs_dir_val = '$RC_ROOT$/datasets/DIV2K_valid_HR_crop4;$RC_ROOT$/datasets/DIV2K
 # if True, imgs_dir_train and imgs_dir_val are expected to be dicts with 'raw' and 'compressed' keys
 is_residual_dataset = True
 
-max_epochs = None
+max_epochs = 10
 random_scale = False
 train_filter_min_size = None

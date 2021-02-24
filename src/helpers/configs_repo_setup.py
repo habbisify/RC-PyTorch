@@ -42,7 +42,7 @@ class ConfigsRepo(object):
     def __init__(self,
                  config_dir=DEFAULT_CONFIG_DIR,  # just set to 'configs' usually
                  git_url='git@gitlab.com:fab-jul/jointcomp_configs.git',
-                 git_checkout='origin/main',
+                 git_checkout='origin/nas-relu',
                  defer_setup=False):
         self.config_dir = config_dir
         self.git_url = git_url
