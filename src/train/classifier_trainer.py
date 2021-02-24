@@ -65,6 +65,8 @@ class ClassifierTrainer(MultiscaleTrainer):
             with self.summarizer.maybe_enable(prefix='train', flag=log, global_step=i):
                 out: ClassifierOut = self.blueprint.forward(x_n)
 
+            # FIXME only reason for fail is bad loss for backcward
+            import pdb; pdb.set_trace()
             with self.summarizer.maybe_enable(prefix='train', flag=log_heavy, global_step=i):
                 loss = self.blueprint.loss(out.q_logits, q)
 
