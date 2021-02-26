@@ -30,13 +30,19 @@ from modules.gdn import GDN
 
 
 class SequentialWithSkip(nn.Module):
-    def __init__(self, body, final):
+    def __init__(self, body1, body2, body3, final):
         super(SequentialWithSkip, self).__init__()
-        self.body = body
+        # init needs three parts of the body now
+        self.body1 = body1
+        self.body2 = body2
+        self.body3 = body3
         self.final = final
 
     def forward(self, x):
-        x = self.body(x) + x
+        # has skip connections between all body parts
+        x = self.body1(x) + x
+        x = self.body2(x) + x
+        x = self.body3(x) + x
         return self.final(x)
 
 
@@ -164,13 +170,32 @@ class EnhancementNetwork(vis.summarizable_module.SummarizableModule):
                 act_tail = GDN(Cf)
             norm_in_body = False
             use_norm_for_long = False
-
-        m_body = [
+        
+        # old residual body + convolution
+        # m_body = [
+            # make_res_block(act_body, norm_in_body)
+            # for _ in range(n_resblock)
+        # ]
+        # new body (configuration 1-layer 4,8,4)
+        m_body1 = [
             make_res_block(act_body, norm_in_body)
-            for _ in range(n_resblock)
+            for _ in range(int(n_resblock/4))
         ]
-        m_body.append(pe.default_conv(Cf, Cf, kernel_size))
-        self.body = nn.Sequential(*m_body)
+        m_body2 = [
+            make_res_block(act_body, norm_in_body)
+            for _ in range(int(n_resblock/2))
+        ]
+        m_body3 = [
+            make_res_block(act_body, norm_in_body)
+            for _ in range(int(n_resblock/4))
+        ]
+        # the last body element gets a CONV layer afterwards
+        m_body3.append(pe.default_conv(Cf, Cf, kernel_size))
+        # three parts of the body
+        self.body1 = nn.Sequential(*m_body1)
+        self.body2 = nn.Sequential(*m_body2)
+        self.body3 = nn.Sequential(*m_body3)
+        
 
         if self._down_up:
             if self._down_up == 'deconv':
@@ -281,7 +306,10 @@ class EnhancementNetwork(vis.summarizable_module.SummarizableModule):
         x = self.head(x)
         x_after_head = x
         x = self.down(x)
-        x = self.body(x) + x
+        # in the forward pass, skip connections during residual layer
+        x = self.body1(x) + x
+        x = self.body2(x) + x
+        x = self.body3(x) + x
         x = self.after_skip(x)  # goes up again
 
         if self.unet_skip_conv is not None:
