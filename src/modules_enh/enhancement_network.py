@@ -147,7 +147,15 @@ class EnhancementNetwork(vis.summarizable_module.SummarizableModule):
         use_norm_for_long = not global_config.get('no_norm_final', False)
         if not use_norm_for_long:
             print('*** no norm for final')
-
+        
+        # previous residual block
+        def make_res_block_old(_act, _use_norm=True):
+            return edsr.ResBlock_old(
+                pe.default_conv, Cf, kernel_size, act=_act,
+                norm_cls=norm_cls if _use_norm else None,
+                res_scale=global_config.get('res_scale', 0.1))
+        
+        # new residual block
         def make_res_block(_act, _use_norm=True):
             return edsr.ResBlock(
                 pe.default_conv, Cf, kernel_size, act=_act,
