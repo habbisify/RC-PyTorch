@@ -59,7 +59,45 @@ class MeanShift(nn.Conv2d):
         self.bias.data.div_(std)
         self.requires_grad = False
 
+# previous residual block
+class ResBlock_old(nn.Module):
+    def __init__(self, conv, n_feats, kernel_size,
+                 bias=True, bn=False, norm_cls=None, act=nn.ReLU(True), res_scale=1):
 
+        super(ResBlock_old, self).__init__()
+        m = []
+        _repr = []
+        # do this two times (CONV, GDN, ReLU)
+        for i in range(2):
+            # CONV append 
+            m.append(conv(n_feats, n_feats, kernel_size, bias=bias))
+            _repr.append(f'Conv({n_feats}x{kernel_size})')
+            # Normalization append (either BN or GDN)
+            if bn:
+                m.append(nn.BatchNorm2d(n_feats))
+                _repr.append(f'BN({n_feats})')
+            elif norm_cls is not None:
+                m.append(norm_cls())
+                _repr.append(f'N({n_feats})')
+            # ReLU append (only for the first time
+            if i == 0:
+                m.append(act)
+                _repr.append(repr(act))
+        if res_scale != 1:
+            _repr.append(f'res_scale={res_scale}')
+        self.res_scale = res_scale
+        self.body = nn.Sequential(*m)
+        self._repr = '/'.join(_repr)
+
+    def forward_old(self, x):
+        res = self.body(x).mul(self.res_scale)
+        res += x
+        return res
+
+    def __repr__(self):
+        return f'ResBlock_old({self._repr})'
+
+# new "Bottleneck" residual block (gdn_wide_deep3.cf: conv=pytorch_default_conv, n_feats=Cf = 128, kernel_size = 3)
 class ResBlock(nn.Module):
     def __init__(self, conv, n_feats, kernel_size,
                  bias=True, bn=False, norm_cls=None, act=nn.ReLU(True), res_scale=1):
@@ -67,18 +105,58 @@ class ResBlock(nn.Module):
         super(ResBlock, self).__init__()
         m = []
         _repr = []
-        for i in range(2):
-            m.append(conv(n_feats, n_feats, kernel_size, bias=bias))
-            _repr.append(f'Conv({n_feats}x{kernel_size})')
-            if bn:
-                m.append(nn.BatchNorm2d(n_feats))
-                _repr.append(f'BN({n_feats})')
-            elif norm_cls is not None:
-                m.append(norm_cls())
-                _repr.append(f'N({n_feats})')
-            if i == 0:
-                m.append(act)
-                _repr.append(repr(act))
+        # first block is 1x1, 128 (1x1, 64 in ResNet paper)
+        # CONV
+        n_feats = 128
+        m.append(conv(n_feats, n_feats, 1, bias=bias))
+        _repr.append(f'Conv({n_feats}x{1})')
+        # Normalization remains unaffected
+        if bn:
+            m.append(nn.BatchNorm2d(n_feats))
+            _repr.append(f'BN({n_feats})')
+        elif norm_cls is not None:
+            m.append(norm_cls())
+            _repr.append(f'N({n_feats})')
+        # Activation remains unaffected
+        if i == 0:
+            m.append(act)
+            _repr.append(repr(act))
+        if res_scale != 1:
+            _repr.append(f'res_scale={res_scale}')
+        # second block is 3x3, 128 (3x3, 64 in ResNet paper)
+        n_feats = 128
+        # CONV
+        m.append(conv(n_feats, n_feats, kernel_size, bias=bias))
+        _repr.append(f'Conv({n_feats}x{kernel_size})')
+        # Normalization remains unaffected
+        if bn:
+            m.append(nn.BatchNorm2d(n_feats))
+            _repr.append(f'BN({n_feats})')
+        elif norm_cls is not None:
+            m.append(norm_cls())
+            _repr.append(f'N({n_feats})')
+        # Activation remains unaffected
+        if i == 0:
+            m.append(act)
+            _repr.append(repr(act))
+        if res_scale != 1:
+            _repr.append(f'res_scale={res_scale}')
+        # third block is 1x1, 512 (1x1, 256 in ResNet paper)
+        # CONV
+        n_feats = 512
+        m.append(conv(n_feats, n_feats, 1, bias=bias))
+        _repr.append(f'Conv({n_feats}x{1})')
+        # Normalization remains unaffected
+        if bn:
+            m.append(nn.BatchNorm2d(n_feats))
+            _repr.append(f'BN({n_feats})')
+        elif norm_cls is not None:
+            m.append(norm_cls())
+            _repr.append(f'N({n_feats})')
+        # Activation remains unaffected
+        if i == 0:
+            m.append(act)
+            _repr.append(repr(act))
         if res_scale != 1:
             _repr.append(f'res_scale={res_scale}')
         self.res_scale = res_scale
@@ -92,7 +170,6 @@ class ResBlock(nn.Module):
 
     def __repr__(self):
         return f'ResBlock({self._repr})'
-
 
 class Upsampler(nn.Sequential):
     def __init__(self, conv, scale, n_feats, bn=False, act=False, bias=True):
