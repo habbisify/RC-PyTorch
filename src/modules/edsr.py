@@ -79,7 +79,7 @@ class ResBlock_old(nn.Module):
             elif norm_cls is not None:
                 m.append(norm_cls())
                 _repr.append(f'N({n_feats})')
-            # ReLU append (only for the first time
+            # ReLU append (only for the first time)
             if i == 0:
                 m.append(act)
                 _repr.append(repr(act))
@@ -105,60 +105,28 @@ class ResBlock(nn.Module):
         super(ResBlock, self).__init__()
         m = []
         _repr = []
-        # first block is 1x1, 128 (1x1, 64 in ResNet paper)
-        # CONV
-        n_feats = 128
-        m.append(conv(n_feats, n_feats, 1, bias=bias))
-        _repr.append(f'Conv({n_feats}x{1})')
-        # Normalization remains unaffected
-        if bn:
-            m.append(nn.BatchNorm2d(n_feats))
-            _repr.append(f'BN({n_feats})')
-        elif norm_cls is not None:
-            m.append(norm_cls())
-            _repr.append(f'N({n_feats})')
-        # Activation remains unaffected
-        if i == 0:
-            m.append(act)
-            _repr.append(repr(act))
+        # blocks are 
+        # (1): 1x1, 128 (1x1, 64 in ResNet paper)
+        # (2): 3x3, 128 (3x3, 64 in ResNet paper)
+        # (3): 1x1, 512 (1x1, 256 in ResNet paper)
+        n_feats = [128, 128, 512]
+        kernel_size = [1, 3, 1]
+        for i in range(3):
+            m.append(conv(n_feats[i], n_feats[i], kernel_size[i], bias=bias))
+            _repr.append(f'Conv({n_feats[i]}x{kernel_size[i]})')
+            # Normalization remains unaffected
+            if bn:
+                m.append(nn.BatchNorm2d(n_feats[i]))
+                _repr.append(f'BN({n_feats[i]})')
+            elif norm_cls is not None:
+                m.append(norm_cls())
+                _repr.append(f'N({n_feats[i]})')
+            # ReLU only after first and second conv
+            if i < 2:
+                m.append(act)
+                _repr.append(repr(act))
         if res_scale != 1:
-            _repr.append(f'res_scale={res_scale}')
-        # second block is 3x3, 128 (3x3, 64 in ResNet paper)
-        n_feats = 128
-        # CONV
-        m.append(conv(n_feats, n_feats, kernel_size, bias=bias))
-        _repr.append(f'Conv({n_feats}x{kernel_size})')
-        # Normalization remains unaffected
-        if bn:
-            m.append(nn.BatchNorm2d(n_feats))
-            _repr.append(f'BN({n_feats})')
-        elif norm_cls is not None:
-            m.append(norm_cls())
-            _repr.append(f'N({n_feats})')
-        # Activation remains unaffected
-        if i == 0:
-            m.append(act)
-            _repr.append(repr(act))
-        if res_scale != 1:
-            _repr.append(f'res_scale={res_scale}')
-        # third block is 1x1, 512 (1x1, 256 in ResNet paper)
-        # CONV
-        n_feats = 512
-        m.append(conv(n_feats, n_feats, 1, bias=bias))
-        _repr.append(f'Conv({n_feats}x{1})')
-        # Normalization remains unaffected
-        if bn:
-            m.append(nn.BatchNorm2d(n_feats))
-            _repr.append(f'BN({n_feats})')
-        elif norm_cls is not None:
-            m.append(norm_cls())
-            _repr.append(f'N({n_feats})')
-        # Activation remains unaffected
-        if i == 0:
-            m.append(act)
-            _repr.append(repr(act))
-        if res_scale != 1:
-            _repr.append(f'res_scale={res_scale}')
+            _repr.append(f'res_scale={res_scale}') 
         self.res_scale = res_scale
         self.body = nn.Sequential(*m)
         self._repr = '/'.join(_repr)
