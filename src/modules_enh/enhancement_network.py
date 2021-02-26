@@ -32,17 +32,12 @@ from modules.gdn import GDN
 class SequentialWithSkip(nn.Module):
     def __init__(self, body1, body2, body3, final):
         super(SequentialWithSkip, self).__init__()
-        # init needs three parts of the body now
-        self.body1 = body1
-        self.body2 = body2
-        self.body3 = body3
+        # since SequentialWithSkip is never used, we leave it like that
+        self.body = body
         self.final = final
 
     def forward(self, x):
-        # has skip connections between all body parts
-        x = self.body1(x) + x
-        x = self.body2(x) + x
-        x = self.body3(x) + x
+        x = self.body(x) + x
         return self.final(x)
 
 
@@ -153,10 +148,29 @@ class EnhancementNetwork(vis.summarizable_module.SummarizableModule):
         use_norm_for_long = not global_config.get('no_norm_final', False)
         if not use_norm_for_long:
             print('*** no norm for final')
-
+        
+        # standard residual block (layer 1)
         def make_res_block(_act, _use_norm=True):
             return edsr.ResBlock(
                 pe.default_conv, Cf, kernel_size, act=_act,
+                norm_cls=norm_cls if _use_norm else None,
+                res_scale=global_config.get('res_scale', 0.1))
+        # residual blocks of layer 2 are 2* smaller
+        def make_res_block2(_act, _use_norm=True):
+            return edsr.ResBlock(
+                pe.default_conv, int(Cf/2), kernel_size, act=_act,
+                norm_cls=norm_cls if _use_norm else None,
+                res_scale=global_config.get('res_scale', 0.1))
+        # residual blocks of layer 3 are 4* smaller
+        def make_res_block3(_act, _use_norm=True):
+            return edsr.ResBlock(
+                pe.default_conv, int(Cf/4), kernel_size, act=_act,
+                norm_cls=norm_cls if _use_norm else None,
+                res_scale=global_config.get('res_scale', 0.1))
+        # residual blocks of layer 4 are 8* smaller
+        def make_res_block4(_act, _use_norm=True):
+            return edsr.ResBlock(
+                pe.default_conv, int(Cf/8), kernel_size, act=_act,
                 norm_cls=norm_cls if _use_norm else None,
                 res_scale=global_config.get('res_scale', 0.1))
 
@@ -176,25 +190,40 @@ class EnhancementNetwork(vis.summarizable_module.SummarizableModule):
             # make_res_block(act_body, norm_in_body)
             # for _ in range(n_resblock)
         # ]
-        # new body (configuration 1-layer 4,8,4)
+        # new body (configuration 3-layer 2,2,2,4,2,2,2)
         m_body1 = [
             make_res_block(act_body, norm_in_body)
-            for _ in range(int(n_resblock/4))
+            for _ in range(2)
         ]
         m_body2 = [
-            make_res_block(act_body, norm_in_body)
-            for _ in range(int(n_resblock/2))
+            make_res_block2(act_body, norm_in_body)
+            for _ in range(2)
         ]
         m_body3 = [
-            make_res_block(act_body, norm_in_body)
-            for _ in range(int(n_resblock/4))
+            make_res_block3(act_body, norm_in_body)
+            for _ in range(2)
+        ]
+        m_body4 = [
+            make_res_block4(act_body, norm_in_body)
+            for _ in range(4)
         ]
         # the last body element gets a CONV layer afterwards
-        m_body3.append(pe.default_conv(Cf, Cf, kernel_size))
-        # three parts of the body
+        m_body5.append(pe.default_conv(Cf, Cf, kernel_size))
+        # seven parts of the body (2|2|2|4|2|2|2)
+        # first only two residuals
         self.body1 = nn.Sequential(*m_body1)
-        self.body2 = nn.Sequential(*m_body2)
-        self.body3 = nn.Sequential(*m_body3)
+        # took methods from the unet implementation
+        # for 2nd, 3rd, 4th: first maxpool to shrink map, then conv with 2 resblocks
+        self.body2 = nn.Sequential(*nn.MaxPool2d(2), *m_body2)
+        self.body3 = nn.Sequential(*nn.MaxPool2d(2), *m_body3)
+        self.body4 = nn.Sequential(*nn.MaxPool2d(2), *m_body4)
+        # for 5th, 6th, 7th: first upconv, then conv with 2 resblocks
+        # the 5th block convolution is identical to the 3rd
+        self.body5 = nn.Sequential(*nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True), *m_body3)
+        # the 6th block convolution is identical to the 2nd
+        self.body6 = nn.Sequential(*nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True), *m_body2)
+        # the 7th block convolution is identical to the 1st
+        self.body7 = nn.Sequential(*nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True), *m_body1)
         
 
         if self._down_up:
@@ -307,9 +336,24 @@ class EnhancementNetwork(vis.summarizable_module.SummarizableModule):
         x_after_head = x
         x = self.down(x)
         # in the forward pass, skip connections during residual layer
-        x = self.body1(x) + x
-        x = self.body2(x) + x
-        x = self.body3(x) + x
+        # save early maps as x1/x2/x3
+        x1 = self.body1(x)
+        x = x1
+        x2 = self.body2(x)
+        x = x2
+        x3 = self.body3(x)
+        x = x3
+        x = self.body4(x)
+        # copy 3 -> 5
+        x = self.body5(x)
+        x = torch.cat([x, x3], dim=1)
+        # copy 2 -> 6
+        x = self.body6(x)
+        x = torch.cat([x, x2], dim=1)
+        # copy 1 -> 7
+        x = self.body7(x)
+        x = torch.cat([x, x1], dim=1)
+        # skip connection is removed (due to copy & crop which is expected to have the same effect)
         x = self.after_skip(x)  # goes up again
 
         if self.unet_skip_conv is not None:
