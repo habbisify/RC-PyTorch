@@ -154,6 +154,16 @@ class Trainer(object):
                 print('*** Validating right away...')
                 last_validation_set_test -= 10 * validation_set_interval_s
             for epoch in (range(self.max_epochs) if self.max_epochs else itertools.count()):
+            
+                # Produce RAW ; COMPRESSED_Q image pairs with current Classifier
+                # How? produce .csv as in classifier part?
+                
+                # Update dl_train_R with MODIFIED "get_ds_train(self)" (multiscale_trainer.py) 
+                # OR "get_residual_dataset()" (dataloaders/compressed_images_loaders.py )
+                # dl_train, self.ds_val, self.fixed_first_val = self._get_dataloaders(num_workers)
+                
+                # dl_train_it_R = TrainingSetIterator(self.skip_to_itr, self.dl_train_R)?   
+           
                 self.print_epoch_sep(epoch)
                 self.prepare_for_epoch(epoch)
                 t = TimedIterator(dl_train_it.iter_epoch(epoch))
@@ -179,6 +189,24 @@ class Trainer(object):
                         self.saver.save(self.modules_to_save(), i, force=True, make_permanent=True)
                         self._eval(i, kind='validation_set')
                         last_validation_set_test = time.time()
+ 
+ 
+                ###############################
+                # Classifier / Regressor part #
+                ###############################
+                    
+                # Produce groundtruth:
+                # Produce "q_histories/epoch_idx.csv" with current RC. How? No idea! (run_test.py)
+                # (image_name ; q_value)
+                    
+                # Update dl_train_Q with "get_ds_train(self)" (classifier_trainer.py) 
+                # dl_train, self.ds_val, self.fixed_first_val = self._get_dataloaders(num_workers)
+                
+                # dl_train_it_Q = TrainingSetIterator(self.skip_to_itr, self.dl_train_R)?   
+                
+                # for i, img_batch in t:
+                    # Do stuff...
+                    
         except AbortTrainingException as e:
             print('Caught {}'.format(e))
             return
