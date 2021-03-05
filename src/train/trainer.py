@@ -172,7 +172,7 @@ class Trainer(object):
                     if i % 1000 == 0:
                         if torch.cuda.is_available():
                             torch.cuda.empty_cache()
-                    if True: # time.time() - last_validation_set_test > validation_set_interval_s:
+                    if time.time() - last_validation_set_test > validation_set_interval_s:
                         print('Validating...')
                         if torch.cuda.is_available():
                             torch.cuda.empty_cache()
