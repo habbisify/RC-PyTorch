@@ -108,10 +108,10 @@ class ClassifierNetwork(vis.summarizable_module.SummarizableModule):
         assert len(x.shape) == 4 and x.shape[0] == 1, x.shape
         with torch.no_grad():
             q_pred = self.forward(x).q_logits
-            import pdb;pdb.set_trace()
             # _, predicted = torch.max(q_logits, 1)
             # return predicted.item() + self.config_clf.first_class
-            return q_pred + self.config_clf.first_class
+            q_pred = q_pred.round()
+            return q_pred.item() + self.config_clf.first_class
 
     def forward(self, x):
         self.summarizer.register_images('train', {'input': x}, normalize=True, only_once=True)

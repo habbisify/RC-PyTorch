@@ -7,7 +7,7 @@ crop_size = 512
 crop_size_val = None
 random_scale = False
 
-max_epochs = 10
+max_epochs = 100
 
 # if True, imgs_dir_train and imgs_dir_val are expected to be dicts with 'raw' and 'compressed' keys
 is_residual_dataset = False
