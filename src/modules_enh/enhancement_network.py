@@ -208,22 +208,22 @@ class EnhancementNetwork(vis.summarizable_module.SummarizableModule):
             for _ in range(4)
         ]
         # the last body element gets a CONV layer afterwards
-        m_body5.append(pe.default_conv(Cf, Cf, kernel_size))
+        #m_body5.append(pe.default_conv(Cf, Cf, kernel_size))
         # seven parts of the body (2|2|2|4|2|2|2)
         # first only two residuals
         self.body1 = nn.Sequential(*m_body1)
         # took methods from the unet implementation
         # for 2nd, 3rd, 4th: first maxpool to shrink map, then conv with 2 resblocks
-        self.body2 = nn.Sequential(*nn.MaxPool2d(2), *m_body2)
-        self.body3 = nn.Sequential(*nn.MaxPool2d(2), *m_body3)
-        self.body4 = nn.Sequential(*nn.MaxPool2d(2), *m_body4)
+        self.body2 = nn.Sequential(nn.MaxPool2d(2), *m_body2)
+        self.body3 = nn.Sequential(nn.MaxPool2d(2), *m_body3)
+        self.body4 = nn.Sequential(nn.MaxPool2d(2), *m_body4)
         # for 5th, 6th, 7th: first upconv, then conv with 2 resblocks
         # the 5th block convolution is identical to the 3rd
-        self.body5 = nn.Sequential(*nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True), *m_body3)
+        self.body5 = nn.Sequential(nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True), *m_body3)
         # the 6th block convolution is identical to the 2nd
-        self.body6 = nn.Sequential(*nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True), *m_body2)
+        self.body6 = nn.Sequential(nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True), *m_body2)
         # the 7th block convolution is identical to the 1st
-        self.body7 = nn.Sequential(*nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True), *m_body1)
+        self.body7 = nn.Sequential(nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True), *m_body1)
         
 
         if self._down_up:
