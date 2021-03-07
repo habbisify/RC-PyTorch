@@ -109,7 +109,7 @@ class ResBlock(nn.Module):
         # (1): 1x1, 128 (1x1, 64 in ResNet paper)
         # (2): 3x3, 128 (3x3, 64 in ResNet paper)
         # (3): 1x1, 512 (1x1, 256 in ResNet paper)
-        n_feats = [128, 128, 512]
+        n_feats = [128, 128, 128]
         kernel_size = [1, 3, 1]
         for i in range(3):
             m.append(conv(n_feats[i], n_feats[i], kernel_size[i], bias=bias))
