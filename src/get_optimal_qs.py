@@ -16,6 +16,9 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with RC-PyTorch.  If not, see <https://www.gnu.org/licenses/>.
 """
+import glob
+import re
+
 import csv
 
 import numpy as np
@@ -34,6 +37,9 @@ from helpers.quantized_tensor import NormalizedTensor, SymbolTensor
 
 OPTIMAL_QS_TXT = 'optimal_q.txt'
 
+def extract_number(f):
+    s = re.findall("\d+$",f)
+    return (int(s[0]) if s else -1,f)
 
 def read(p):
     if not p.endswith(OPTIMAL_QS_TXT):
@@ -52,6 +58,14 @@ def read(p):
 
 def _get(img_dir, clf_ckpt_p):
     out_file = os.path.join(img_dir, OPTIMAL_QS_TXT)
+
+    lst=[]
+    for file in glob.glob(clf_ckpt_p + "*/ckpts/*.pt"):
+        head_tail = os.path.split(file) 
+        lst.append(head_tail[1])
+    
+    print("Using:", max(lst,key=extract_number), "for selecting qs")
+    clf_ckpt_p = os.path.join(head_tail[0], max(lst,key=extract_number))
 
     clf = load_classifier(clf_ckpt_p)
 
